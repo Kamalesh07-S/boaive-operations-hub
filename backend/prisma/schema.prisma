@@ -1,0 +1,518 @@
+// Boaive Operations Hub - Prisma Schema
+// PostgreSQL + Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MEMBER
+}
+
+enum ClientStatus {
+  Open
+  Active
+  Hold
+  Completed
+  Declined
+  Inactive
+}
+
+enum ClientType {
+  Enterprise
+  Retainer
+  Project_based
+  Advisory
+}
+
+enum LeadStatus {
+  New
+  Contacted
+  Discovery
+  Proposal_Sent
+  Negotiation
+  Won
+  Lost
+  On_Hold
+}
+
+enum ProjectStatus {
+  Open_Work
+  In_Progress
+  Awaiting_Client
+  Testing
+  Overdue
+  On_Hold
+  Completed
+  Cancelled
+}
+
+enum ServiceType {
+  Web_App
+  AI_ML_Engineering
+  Mobile_App
+  Cloud_Infrastructure
+  UI_UX_Design
+  Retainer
+}
+
+enum PaymentStatus {
+  Draft
+  Sent
+  Partially_Paid
+  Paid
+  Overdue
+  Cancelled
+}
+
+enum ClientDependency {
+  None
+  Assets_Pending
+  Feedback_Required
+  Access_Needed
+  Payment_Due
+}
+
+enum Priority {
+  Low
+  Medium
+  High
+  Urgent
+}
+
+enum TaskStatus {
+  Todo
+  In_Progress
+  Review
+  Completed
+  Overdue
+}
+
+enum TaskCategory {
+  Development
+  Design
+  DevOps
+  Bugfix
+  QA_Testing
+  Client_Ops
+  Security
+}
+
+enum FinanceType {
+  Income
+  Expense
+  Transfer
+}
+
+enum ExpenseType {
+  Operational
+  Tooling
+  Infrastructure
+  Contractor
+  Admin
+}
+
+enum ExpenseCategory {
+  Infrastructure_Cloud
+  Software_Licenses
+  Contractor_Agency
+  Operations_Office
+  Marketing_Sales
+  Hardware
+}
+
+enum ExpenseFrequency {
+  One_time
+  Monthly
+  Quarterly
+  Annual
+}
+
+enum ExpensePaymentStatus {
+  Paid
+  Pending
+  Scheduled
+}
+
+enum AssetType {
+  Domain
+  SSL_Certificate
+  Cloud_Infrastructure
+  SaaS_Subscription
+  Database_Instance
+  Security_Keys
+}
+
+enum OwnerType {
+  Boaive_Internal
+  Client_Owned
+  Shared
+}
+
+enum BillingFrequency {
+  Annual
+  Monthly
+  Multi_Year
+}
+
+enum AssetStatus {
+  Active
+  Inactive
+  Pending_Transfer
+}
+
+enum ContentType {
+  Case_Study
+  Technical_Blog
+  Social_Thread
+  Newsletter
+  Video_Demo
+}
+
+enum ContentPlatform {
+  LinkedIn
+  Twitter_X
+  Blog
+  Newsletter
+  YouTube
+  Case_Study
+}
+
+enum ContentStatus {
+  Idea
+  Draft
+  Review
+  Scheduled
+  Published
+}
+
+enum ContentPillar {
+  Engineering_Excellence
+  Product_Case_Study
+  Operations_Insights
+  Open_Source
+}
+
+enum InvoiceStatus {
+  Draft
+  Sent
+  Partially_Paid
+  Paid
+  Overdue
+  Cancelled
+}
+
+enum PreferredContactMethod {
+  Email
+  Phone
+  WhatsApp
+  Slack
+}
+
+// ─── MODELS ─────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(MEMBER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Client {
+  id               String       @id @default(cuid())
+  clientCode       String       @unique // CLI-001
+  clientName       String
+  company          String
+  contactPerson    String?
+  email            String?
+  phone            String?
+  location         String?
+  website          String?
+  source           String?
+  clientStatus     ClientStatus @default(Active)
+  clientType       ClientType   @default(Project_based)
+  firstContactDate DateTime?
+  onboardingDate   DateTime?
+  lastContactDate  DateTime?
+  nextFollowUp     DateTime?
+  notes            String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // Relations
+  contacts  Contact[]
+  leads     Lead[]
+  projects  Project[]
+  finance   FinanceRecord[]
+  expenses  ExpenseRecord[]
+  assets    AssetRecord[]
+  content   ContentRecord[]
+  invoices  Invoice[]
+
+  @@map("clients")
+}
+
+model Contact {
+  id                     String                 @id @default(cuid())
+  contactCode            String                 @unique // CON-001
+  clientId               String
+  name                   String
+  role                   String?
+  email                  String?
+  phone                  String?
+  preferredContactMethod PreferredContactMethod @default(Email)
+  notes                  String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  leads  Lead[]
+
+  @@map("contacts")
+}
+
+model Lead {
+  id                String     @id @default(cuid())
+  leadCode          String     @unique // LED-001
+  leadName          String
+  company           String?
+  contactId         String?
+  source            String?
+  status            LeadStatus @default(New)
+  estimatedValue    Float      @default(0)
+  probability       Int        @default(0) // 0-100
+  expectedCloseDate DateTime?
+  nextFollowUp      DateTime?
+  assignedTo        String?
+  notes             String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  // Optional client link (after lead is won and converted)
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@map("leads")
+}
+
+model Project {
+  id               String           @id @default(cuid())
+  projectCode      String           @unique // PRJ-001
+  projectName      String
+  clientId         String
+  serviceType      ServiceType      @default(Web_App)
+  status           ProjectStatus    @default(Open_Work)
+  priority         Priority         @default(Medium)
+  startDate        DateTime?
+  deadline         DateTime?
+  progress         Int              @default(0) // 0-100
+  currentPhase     String?
+  nextMilestone    String?
+  clientDependency ClientDependency @default(None)
+  paymentStatus    PaymentStatus    @default(Draft)
+  projectValue     Float            @default(0)
+  repositoryUrl    String?
+  deploymentUrl    String?
+  projectFolder    String?
+  assignedTeam     String[]         @default([])
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  client    Client          @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  tasks     Task[]
+  finance   FinanceRecord[]
+  expenses  ExpenseRecord[]
+  assets    AssetRecord[]
+  content   ContentRecord[]
+  invoices  Invoice[]
+  milestones Milestone[]
+
+  @@map("projects")
+}
+
+model Milestone {
+  id        String   @id @default(cuid())
+  projectId String
+  title     String
+  dueDate   DateTime?
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
+}
+
+model Task {
+  id        String       @id @default(cuid())
+  taskCode  String       @unique // TSK-001
+  title     String
+  projectId String?
+  clientId  String?
+  category  TaskCategory @default(Development)
+  priority  Priority     @default(Medium)
+  status    TaskStatus   @default(Todo)
+  dueDate   DateTime?
+  assignedTo String?
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("tasks")
+}
+
+model FinanceRecord {
+  id              String        @id @default(cuid())
+  transactionCode String        @unique // FIN-001
+  date            DateTime      @default(now())
+  type            FinanceType   @default(Income)
+  clientId        String?
+  projectId       String?
+  description     String
+  amount          Float         @default(0)
+  paymentStatus   PaymentStatus @default(Draft)
+  paidDate        DateTime?
+  paymentMethod   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  client  Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("finance_records")
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique // INV-001
+  clientId      String
+  projectId     String?
+  issueDate     DateTime      @default(now())
+  dueDate       DateTime?
+  subtotal      Float         @default(0)
+  tax           Float         @default(0)
+  discount      Float         @default(0)
+  totalAmount   Float         @default(0)
+  amountPaid    Float         @default(0)
+  status        InvoiceStatus @default(Draft)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("invoices")
+}
+
+model ExpenseRecord {
+  id            String               @id @default(cuid())
+  expenseCode   String               @unique // EXP-001
+  date          DateTime             @default(now())
+  type          ExpenseType          @default(Operational)
+  category      ExpenseCategory      @default(Operations_Office)
+  description   String
+  vendor        String?
+  amount        Float                @default(0)
+  frequency     ExpenseFrequency     @default(One_time)
+  monthlyCost   Float                @default(0) // calculated
+  renewalDate   DateTime?
+  nextDue       DateTime?
+  paymentStatus ExpensePaymentStatus @default(Pending)
+  paymentMethod String?
+  ownerId       String?
+  clientId      String?
+  projectId     String?
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  client  Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("expense_records")
+}
+
+model AssetRecord {
+  id                 String           @id @default(cuid())
+  assetCode          String           @unique // AST-001
+  assetType          AssetType        @default(Domain)
+  assetName          String
+  domainOrAccountName String?
+  ownerType          OwnerType        @default(Boaive_Internal)
+  clientId           String?
+  projectId          String?
+  provider           String?
+  purchaseDate       DateTime?
+  renewalDate        DateTime?
+  cost               Float            @default(0)
+  billingFrequency   BillingFrequency @default(Annual)
+  status             AssetStatus      @default(Active)
+  accountReference   String?          // e.g. "Password Manager → Boaive → Domains"
+  purpose            String?
+  notes              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  client  Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("asset_records")
+}
+
+model ContentRecord {
+  id             String          @id @default(cuid())
+  contentCode    String          @unique // CNT-001
+  title          String
+  contentType    ContentType     @default(Technical_Blog)
+  platform       ContentPlatform @default(LinkedIn)
+  status         ContentStatus   @default(Idea)
+  ideaDate       DateTime?
+  draftDate      DateTime?
+  scheduledDate  DateTime?
+  publishedDate  DateTime?
+  url            String?
+  clientId       String?
+  projectId      String?
+  contentPillar  ContentPillar   @default(Engineering_Excellence)
+  cta            String?
+  author         String?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  client  Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("content_records")
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  group String @default("general")
+
+  @@map("settings")
+}

@@ -1,32 +1,98 @@
-# React + TypeScript + Vite
+# Boaive Operations Hub
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Internal operations management system for Boaive Technologies.
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+admin pannel/
+├── frontend/        ← React 19 + TypeScript + Vite
+├── backend/         ← Node.js + Express + TypeScript + PostgreSQL + Prisma
+├── .gitignore
+└── README.md
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # production build
+```
+
+---
+
+## Backend
+
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 15+
+
+### Setup
+
+1. **Install dependencies**
+   ```bash
+   cd backend
+   npm install
+   ```
+
+2. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env — set DATABASE_URL and JWT_SECRET
+   ```
+
+3. **Database setup**
+   ```bash
+   npm run db:generate    # Generate Prisma client
+   npm run db:migrate     # Run migrations
+   npm run db:seed        # Seed development data
+   ```
+
+4. **Start backend**
+   ```bash
+   npm run dev            # http://localhost:5000
+   ```
+
+### Default Credentials (seed data)
+| Email | Password | Role |
+|-------|----------|------|
+| admin@boaive.com | Admin@123 | SUPER_ADMIN |
+| aarav@boaive.com | Admin@123 | ADMIN |
+| priya@boaive.com | Admin@123 | MEMBER |
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| POST | `/api/auth/login` | Login |
+| GET | `/api/auth/me` | Current user |
+| GET | `/api/dashboard` | Dashboard KPIs |
+| GET | `/api/search?q=` | Global search |
+| GET/POST | `/api/clients` | Clients |
+| GET/PUT/DELETE | `/api/clients/:id` | Client detail |
+| GET/POST | `/api/contacts` | Contacts |
+| GET/POST | `/api/leads` | Leads |
+| GET/POST | `/api/projects` | Projects |
+| GET/POST | `/api/tasks` | Tasks |
+| GET/POST | `/api/finance` | Finance records |
+| GET/POST | `/api/invoices` | Invoices |
+| GET/POST | `/api/expenses` | Expenses |
+| GET/POST | `/api/assets` | Assets |
+| GET/POST | `/api/content` | Content |
+
+API Documentation: `http://localhost:5000/api/docs`
+
+---
+
+## Tech Stack
+
+**Frontend:** React 19, TypeScript, Vite, Lucide React
+
+**Backend:** Node.js, Express, TypeScript, PostgreSQL, Prisma ORM, Zod, JWT, bcryptjs, Helmet, Winston, Swagger
